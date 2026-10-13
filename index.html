@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Sistema de Conduces · Grupo Económico Torres Rodríguez</title>
+    <!--
+      Link fijo para entrar al Sistema de Conduces desde cualquier navegador (ADR-044). No guarda ni muestra datos:
+      con el código de acceso busca en ntfy.sh la dirección actual de la oficina (CIFRADA con ese código), la descifra
+      aquí mismo y abre el sistema, que pide el mismo código (/acceso). El código va después de "#": no llega a GitHub
+      ni a la dirección del túnel. Si se marca "Recordar", queda guardado en este navegador. El "link directo" lleva
+      el código después de "#c=" y entra sin escribirlo.
+      Fuente: kelvinjose14/sistema-conduces, pagina-qr/entrar.html. Se publica como index.html en el repositorio
+      público proyectosweb-hue/conduces-entrar (GitHub Pages): https://proyectosweb-hue.github.io/conduces-entrar/
+    -->
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: linear-gradient(160deg, #3a3fb0 0%, #2b2f8a 45%, #1d2066 100%);
+        color: #0f172a;
+        font:
+          16px/1.5 'Segoe UI',
+          system-ui,
+          -apple-system,
+          Roboto,
+          sans-serif;
+      }
+      main {
+        width: min(420px, 100%);
+        text-align: center;
+      }
+      .marca {
+        color: #fff;
+        margin-bottom: 20px;
+      }
+      .marca svg {
+        width: 84px;
+        height: auto;
+      }
+      .grupo {
+        margin: 8px 0 0;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.42em;
+        color: #c7d2fe;
+      }
+      .marca .empresa {
+        margin: 0;
+        font-weight: 700;
+        color: #fff;
+      }
+      .tarjeta {
+        background: #fff;
+        border-radius: 18px;
+        padding: 28px 22px;
+        box-shadow: 0 20px 50px rgba(10, 12, 60, 0.35);
+      }
+      h1 {
+        margin: 14px 0 6px;
+        font-size: 19px;
+        color: #1f2266;
+      }
+      p {
+        margin: 0;
+        color: #475569;
+      }
+      form {
+        margin-top: 18px;
+        text-align: left;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #334155;
+      }
+      input[type='text'] {
+        width: 100%;
+        height: 48px;
+        margin-top: 6px;
+        padding: 0 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        font:
+          600 16px/1 ui-monospace,
+          Consolas,
+          monospace;
+        text-transform: uppercase;
+      }
+      input[type='text']::placeholder {
+        font-size: 14px;
+        color: #94a3b8;
+      }
+      input[type='text']:focus {
+        outline: 3px solid #c7d2fe;
+        border-color: #2b2f8a;
+      }
+      .recordar {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-top: 14px;
+        font-weight: 400;
+        color: #475569;
+      }
+      .recordar input {
+        margin-top: 4px;
+        accent-color: #2b2f8a;
+      }
+      .aviso {
+        margin-top: 12px;
+        color: #b91c1c;
+        font-size: 14px;
+      }
+      .girando {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto;
+        border-radius: 50%;
+        border: 4px solid #e0e7ff;
+        border-top-color: #2b2f8a;
+        animation: girar 0.9s linear infinite;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      button {
+        width: 100%;
+        margin-top: 18px;
+        height: 48px;
+        border: 0;
+        border-radius: 10px;
+        background: #2b2f8a;
+        color: #fff;
+        font: 600 16px/1 inherit;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      button.enlace {
+        width: auto;
+        height: auto;
+        margin-top: 16px;
+        background: none;
+        color: #2b2f8a;
+        font-size: 14px;
+        text-decoration: underline;
+      }
+      @keyframes girar {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="marca">
+        <svg viewBox="0 0 120 80" aria-hidden="true">
+          <path d="M2 2h62v16H41v60H24V18H2z" fill="#fff" />
+          <path d="M48 26h17v52H48z" fill="#8cc63f" />
+          <path
+            d="M65 2h22c17 0 28 9 28 24 0 11-6 19-16 22l19 30H98L81 50H65V36h21c7 0 11-4 11-10s-4-10-11-10H65z"
+            fill="#fff"
+          />
+        </svg>
+        <p class="grupo">GRUPO ECONÓMICO</p>
+        <p class="empresa">TORRES RODRÍGUEZ</p>
+      </div>
+      <section class="tarjeta">
+        <div id="girando" class="girando" aria-hidden="true" hidden></div>
+        <h1 id="titulo" role="status">Sistema de Conduces</h1>
+        <p id="texto">Escriba el código de acceso para entrar.</p>
+        <form id="formulario" novalidate>
+          <label for="codigo">Código de acceso</label>
+          <input
+            id="codigo"
+            type="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
+          />
+          <label class="recordar">
+            <input id="recordar" type="checkbox" checked />
+            <span>Recordar en este equipo (no lo marque en una PC que usan otras personas)</span>
+          </label>
+          <p id="aviso" class="aviso" role="alert" hidden></p>
+          <button id="entrar" type="submit">Entrar</button>
+        </form>
+        <button id="otro" class="enlace" type="button" hidden>Usar otro código</button>
+      </section>
+    </main>
+    <script>
+      (function () {
+        var local = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+        var NTFY = local ? 'http://127.0.0.1:8099' : 'https://ntfy.sh';
+        var GUARDADO = 'conduces-codigo-acceso';
+        var ALFABETO = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+        var $ = function (id) {
+          return document.getElementById(id);
+        };
+
+        function leerGuardado() {
+          try {
+            return localStorage.getItem(GUARDADO);
+          } catch (e) {
+            return null;
+          }
+        }
+        function guardar(codigo) {
+          try {
+            if (codigo) localStorage.setItem(GUARDADO, codigo);
+            else localStorage.removeItem(GUARDADO);
+          } catch (e) {
+            // Sin almacenamiento (modo privado): se escribe cada vez.
+          }
+        }
+
+        function estado(titulo, texto, buscando) {
+          $('titulo').textContent = titulo;
+          $('texto').textContent = texto;
+          $('girando').hidden = !buscando;
+          $('formulario').hidden = buscando;
+        }
+        function aviso(texto) {
+          $('aviso').textContent = texto || '';
+          $('aviso').hidden = !texto;
+        }
+
+        // Igual que el sistema (src/features/remote-access/code.ts): 25 letras y números, en grupos de 5.
+        function normalizar(texto) {
+          var limpio = String(texto || '')
+            .toUpperCase()
+            .replace(/[^0-9A-Z]/g, '');
+          if (limpio.length !== 25) return null;
+          for (var i = 0; i < limpio.length; i++) if (ALFABETO.indexOf(limpio[i]) < 0) return null;
+          return limpio.match(/.{5}/g).join('-');
+        }
+
+        async function sha256(texto) {
+          return new Uint8Array(
+            await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto)),
+          );
+        }
+        function hex(datos) {
+          return Array.from(datos, function (b) {
+            return b.toString(16).padStart(2, '0');
+          }).join('');
+        }
+        function bytes(base64) {
+          var normal = base64.replace(/-/g, '+').replace(/_/g, '/');
+          while (normal.length % 4) normal += '=';
+          return Uint8Array.from(atob(normal), function (c) {
+            return c.charCodeAt(0);
+          });
+        }
+
+        // Mensaje = base64url(iv[12] | etiqueta[16] | texto cifrado), AES-256-GCM con SHA-256("conduces/url/<código>").
+        async function descifrar(mensaje, codigo) {
+          var datos = bytes(String(mensaje).trim());
+          if (datos.length < 29) return null;
+          var llave = await crypto.subtle.importKey(
+            'raw',
+            await sha256('conduces/url/' + codigo),
+            'AES-GCM',
+            false,
+            ['decrypt'],
+          );
+          var cuerpo = new Uint8Array(datos.length - 12);
+          cuerpo.set(datos.subarray(28));
+          cuerpo.set(datos.subarray(12, 28), datos.length - 28);
+          var claro = await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: datos.subarray(0, 12) },
+            llave,
+            cuerpo,
+          );
+          return new TextDecoder().decode(claro);
+        }
+
+        function direccionValida(texto) {
+          try {
+            var url = new URL(texto);
+            if (url.protocol === 'https:' && /\.trycloudflare\.com$/.test(url.hostname))
+              return url.origin;
+            if (local) return url.origin; // pruebas automáticas
+          } catch (e) {
+            // no es una dirección
+          }
+          return null;
+        }
+
+        async function buscar(codigo) {
+          var tema = 'conduces-' + hex(await sha256('conduces/tema/' + codigo)).slice(0, 40);
+          var respuesta = await fetch(NTFY + '/' + tema + '/json?poll=1&since=12h', {
+            cache: 'no-store',
+          });
+          if (!respuesta.ok) throw new Error('ntfy ' + respuesta.status);
+          var lineas = (await respuesta.text()).split('\n').filter(Boolean).reverse();
+          for (var i = 0; i < lineas.length; i++) {
+            try {
+              var evento = JSON.parse(lineas[i]);
+              if (evento.event !== 'message' || !evento.message) continue;
+              var origen = direccionValida(await descifrar(evento.message, codigo));
+              if (origen) return origen;
+            } catch (e) {
+              // mensaje ajeno o de otro código
+            }
+          }
+          return null;
+        }
+
+        async function entrar(codigo, recordar) {
+          aviso('');
+          estado('Buscando la oficina…', 'Un momento.', true);
+          try {
+            var origen = await buscar(codigo);
+            if (origen) {
+              guardar(recordar ? codigo : null);
+              location.replace(
+                origen + '/acceso#c=' + encodeURIComponent(codigo) + (recordar ? '&r=1' : ''),
+              );
+              return;
+            }
+            estado(
+              'No se encontró la oficina',
+              'Revise el código. Si está bien, la PC principal está apagada, sin internet o con el acceso desde fuera apagado.',
+              false,
+            );
+          } catch (e) {
+            estado(
+              'Sin conexión',
+              'Revise que este equipo tenga internet e intente de nuevo.',
+              false,
+            );
+          }
+          $('codigo').value = codigo;
+          $('entrar').textContent = 'Intentar de nuevo';
+          $('otro').hidden = !leerGuardado();
+        }
+
+        $('formulario').addEventListener('submit', function (evento) {
+          evento.preventDefault();
+          var codigo = normalizar($('codigo').value);
+          if (!codigo) {
+            aviso('El código no es válido: son 25 letras y números (5 grupos de 5).');
+            $('codigo').focus();
+            return;
+          }
+          entrar(codigo, $('recordar').checked);
+        });
+        $('otro').addEventListener('click', function () {
+          guardar(null);
+          $('otro').hidden = true;
+          $('codigo').value = '';
+          $('entrar').textContent = 'Entrar';
+          estado('Sistema de Conduces', 'Escriba el código de acceso para entrar.', false);
+          $('codigo').focus();
+        });
+
+        // Después de "#" puede venir el link directo (#c=<código>, se copia en Configuración: entra sin escribirlo) o
+        // "#cambio" (lo pone el sistema si el código recordado ya no es el vigente). Se quita enseguida de la dirección.
+        var hash = location.hash;
+        if (hash) history.replaceState(null, '', location.pathname);
+        if (hash.indexOf('#c=') === 0) {
+          var crudo = hash.slice(3);
+          try {
+            crudo = decodeURIComponent(crudo);
+          } catch (e) {
+            // se usa tal cual
+          }
+          var directo = normalizar(crudo);
+          if (directo) entrar(directo, true);
+          else
+            aviso(
+              'Ese link directo no es válido. Cópielo otra vez en la PC principal, en Configuración.',
+            );
+        } else if (hash === '#cambio') {
+          guardar(null);
+          aviso(
+            'El código de acceso cambió. Escriba el nuevo o use el link directo nuevo: están en la PC principal, en Configuración.',
+          );
+          $('codigo').focus();
+        } else {
+          var guardado = normalizar(leerGuardado());
+          if (guardado) entrar(guardado, true);
+        }
+      })();
+    </script>
+  </body>
+</html>
