@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="no-referrer" />
+    <!--
+      Oficina de esta copia (ADR-069): la huella pública de su llave de los QR (la misma que va en cada QR impreso; no es
+      secreta). Con ella la página encuentra sola la oficina y lleva directo a iniciar sesión, sin link ni código. Vacía
+      en el repositorio del sistema; se llena en la copia publicada (Configuración → «Acceso desde fuera» la muestra).
+    -->
+    <meta name="conduces-sitio" content="" />
     <title>Sistema de Conduces · Grupo Económico Torres Rodríguez</title>
     <!--
       Link fijo para entrar al Sistema de Conduces desde cualquier navegador (ADR-044, ADR-048). No guarda ni muestra
@@ -147,6 +153,8 @@
         var local = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
         var NTFY = local ? 'http://127.0.0.1:8099' : 'https://ntfy.sh';
         var GUARDADO = 'conduces-codigo-acceso';
+        var SITIO_GUARDADO = 'conduces-sitio';
+        var CORTO = /^[A-Za-z0-9_-]{22}$/;
         var ALFABETO = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
         var $ = function (id) {
           return document.getElementById(id);
@@ -270,7 +278,95 @@
           return null;
         }
 
+        // Sin código: la dirección que la oficina publica firmada para los QR (ADR-041). Solo vale la firmada con la
+        // llave cuya huella es el "sitio" de esta oficina.
+        async function huella(datos) {
+          var resumen = new Uint8Array(await crypto.subtle.digest('SHA-256', datos));
+          var texto = '';
+          resumen.forEach(function (b) {
+            texto += String.fromCharCode(b);
+          });
+          return btoa(texto)
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '')
+            .slice(0, 22);
+        }
+        async function verificar(mensaje, sitio) {
+          if (
+            !mensaje ||
+            typeof mensaje.u !== 'string' ||
+            typeof mensaje.k !== 'string' ||
+            typeof mensaje.f !== 'string'
+          )
+            return null;
+          var clave = bytes(mensaje.k);
+          if ((await huella(clave)) !== sitio) return null;
+          var llave = await crypto.subtle.importKey(
+            'spki',
+            clave,
+            { name: 'ECDSA', namedCurve: 'P-256' },
+            false,
+            ['verify'],
+          );
+          var valida = await crypto.subtle.verify(
+            { name: 'ECDSA', hash: 'SHA-256' },
+            llave,
+            bytes(mensaje.f),
+            new TextEncoder().encode(mensaje.u),
+          );
+          return valida ? direccionValida(mensaje.u) : null;
+        }
+        async function buscarPorSitio(sitio) {
+          var respuesta = await fetch(NTFY + '/conduces-qr-' + sitio + '/json?poll=1&since=12h', {
+            cache: 'no-store',
+          });
+          if (!respuesta.ok) throw new Error('ntfy ' + respuesta.status);
+          var lineas = (await respuesta.text()).split('\n').filter(Boolean).reverse();
+          for (var i = 0; i < lineas.length; i++) {
+            var mensaje = null;
+            try {
+              var evento = JSON.parse(lineas[i]);
+              if (evento.event === 'message') mensaje = JSON.parse(evento.message);
+            } catch (e) {
+              mensaje = null;
+            }
+            var origen = await verificar(mensaje, sitio).catch(function () {
+              return null;
+            });
+            if (origen) return origen;
+          }
+          return null;
+        }
+
         var actual = null;
+        var sitioActual = null;
+        async function entrarSinCodigo(sitio) {
+          sitioActual = sitio;
+          actual = null;
+          aviso('');
+          estado('Buscando la oficina…', 'Un momento.', true);
+          try {
+            var origen = await buscarPorSitio(sitio);
+            if (origen) {
+              location.replace(origen + '/iniciar-sesion');
+              return;
+            }
+            estado(
+              'La oficina no está disponible ahora',
+              'La PC principal está apagada, sin internet o con el acceso desde fuera apagado. Intente de nuevo en unos minutos.',
+              false,
+            );
+          } catch (e) {
+            estado(
+              'Sin conexión',
+              'Revise que este equipo tenga internet e intente de nuevo.',
+              false,
+            );
+          }
+          $('entrar').hidden = false;
+        }
+
         async function entrar(codigo) {
           actual = codigo;
           aviso('');
@@ -300,6 +396,7 @@
 
         $('entrar').addEventListener('click', function () {
           if (actual) entrar(actual);
+          else if (sitioActual) entrarSinCodigo(sitioActual);
         });
         $('otro').addEventListener('click', function () {
           guardar(null);
@@ -327,8 +424,28 @@
         } else {
           // "#cambio" (lo ponían versiones viejas del sistema): el código recordado ya no sirve.
           if (hash === '#cambio') guardar(null);
+          // "#s=<sitio>": la oficina por su huella pública (se recuerda en este navegador).
+          if (hash.indexOf('#s=') === 0 && CORTO.test(hash.slice(3))) {
+            try {
+              localStorage.setItem(SITIO_GUARDADO, hash.slice(3));
+            } catch (e) {
+              // sin almacenamiento
+            }
+          }
+          var meta = document.querySelector('meta[name="conduces-sitio"]');
+          var sitio = meta && CORTO.test(meta.content) ? meta.content : null;
+          if (!sitio) {
+            try {
+              var recordado = localStorage.getItem(SITIO_GUARDADO);
+              if (recordado && CORTO.test(recordado)) sitio = recordado;
+            } catch (e) {
+              sitio = null;
+            }
+          }
+          // Con un código recordado se usa ese; si no, la oficina de esta copia, directo a iniciar sesión.
           var guardado = normalizar(leerGuardado());
           if (guardado) entrar(guardado);
+          else if (sitio) entrarSinCodigo(sitio);
           else sinLink();
         }
       })();
